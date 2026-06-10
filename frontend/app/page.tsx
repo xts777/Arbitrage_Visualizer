@@ -3,8 +3,25 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import SpriteText from 'three-spritetext';
+import type {
+  NodeObject,
+  LinkObject
+} from 'react-force-graph-3d';
 
-// 【超重要】サーバーサイドレンダリングを無効化して3Dグラフを読み込む
+
+const getNodeId = (
+  node: string | number | NodeObject | undefined
+): string => {
+  if (node == null) return '';
+
+  if (typeof node === 'string') return node;
+
+  if (typeof node === 'number') return String(node);
+
+  return String(node.id ?? '');
+};
+
+
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { 
   ssr: false,
   loading: () => <div className="text-white p-5">Loading 3D Graph...</div>
@@ -37,6 +54,10 @@ export default function Home() {
       .catch(err => console.error("API Error:", err));
   }, []);
 
+  const displayLinks = graphData.links.filter(link => {
+    return link.source < link.target;
+  });
+
   return (
     <div className="w-screen h-screen bg-[#0b0f19] m-0 p-0 overflow-hidden relative">
       <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 999, color: 'white', pointerEvents: 'none' }}>
@@ -47,33 +68,45 @@ export default function Home() {
       
       {/* 3Dグラフの描画 */}
       <ForceGraph3D
-        graphData={graphData}
+        graphData={{
+          nodes: graphData.nodes,
+          links: displayLinks
+        }}
         nodeLabel="id"
+        nodeRelSize={2}
+        nodeVal={() => 1}
         nodeColor={() => '#00ffcc'}
         linkColor={() => '#11eeaa'}
-        linkWidth={0.4}
-        linkDirectionalArrowLength={3.5}
+        linkOpacity={0.25}
+        linkWidth={(link) => {
+          if (link.weight > 0) {
+            return 1;
+          }
+          return 0.2;
+        }}
+        linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
+        
+        linkLabel={(link:any) => {
+          const sourceId = getNodeId(link.source);
+          const targetId = getNodeId(link.target);
 
-        linkThreeObjectExtend={true}
+          return `
+        ${sourceId} → ${targetId}
+        rate: ${link.rate.toFixed(4)}
+        weight: ${link.weight.toFixed(4)}
+        `;
+        }}
 
-        linkThreeObject={(link: Link) => {
-          const sprite = new SpriteText(`${link.rate}`);
-          sprite.color = 'lightgray';
-          sprite.textHeight = 1.5;
+        nodeThreeObject={(node) => {
+          const sprite = new SpriteText(node.id);
+          sprite.color = '#ffffff';
+          sprite.backgroundColor = 'transparent';
+          sprite.textHeight = 4;
           return sprite;
         }}
-        linkPositionUpdate={(
-          sprite: SpriteText & { position: Coords },
-          { start, end }: { start: Coords; end: Coords }
-        ) => {
-          const middlePos: Coords = {
-            x: start.x + (end.x - start.x) / 2,
-            y: start.y + (end.y - start.y) / 2,
-            z: start.z + (end.z - start.z) / 2,
-          };
-          Object.assign(sprite.position, middlePos);
-        }}
+        
+        
       />
     </div>
   );
