@@ -88,28 +88,24 @@ def find_arbitrage():
     
     market = current_market
     
-    # MarketGraphのadj_listをダイクストラ用の形式に変換
+    # MarketGraphのadj_listを隣接リストの形式に変換
     # adj_list: { 'USD': [('JPY', weight), ...], ... }
-    adj_list_for_dijkstra = {}
+    adj_list = {}
     for src in market.adj_list:
-        adj_list_for_dijkstra[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
+        adj_list[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
     
-    # 全ノードを追加（孤立したノードも含める）
     for node in market.nodes:
-        if node not in adj_list_for_dijkstra:
-            adj_list_for_dijkstra[node] = []
+        if node not in adj_list:
+            adj_list[node] = []
     
-    # 10回実行して平均時間を計測
     NUM_RUNS = 100
     start_time = time.perf_counter()
     for _ in range(NUM_RUNS):
-        detected_cycles = find_negative_cycles(adj_list_for_dijkstra, early_stop=False)
+        detected_cycles = find_negative_cycles(adj_list, early_stop=False)
     end_time = time.perf_counter()
     execution_time_ms = ((end_time - start_time) * 1000.0) / NUM_RUNS
-    # 浮動小数点誤差を排除するため、サイクルの総重量が明確に負（-1e-7未満）か検証
-    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list_for_dijkstra) < -1e-7]
+    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list) < -1e-7]
     
-    # 重複を排除
     unique_cycles = deduplicate_cycles(raw_cycles)
     
     arbitrage_cycles = [
@@ -139,25 +135,22 @@ def find_arbitrage_early_stop():
     
     market = current_market
     
-    adj_list_for_dijkstra = {}
+    adj_list = {}
     for src in market.adj_list:
-        adj_list_for_dijkstra[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
+        adj_list[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
     
     for node in market.nodes:
-        if node not in adj_list_for_dijkstra:
-            adj_list_for_dijkstra[node] = []
+        if node not in adj_list:
+            adj_list[node] = []
     
-    # 10回実行して平均時間を計測
     NUM_RUNS = 100
     start_time = time.perf_counter()
     for _ in range(NUM_RUNS):
-        detected_cycles = find_negative_cycles(adj_list_for_dijkstra, early_stop=True)
+        detected_cycles = find_negative_cycles(adj_list, early_stop=True)
     end_time = time.perf_counter()
     execution_time_ms = ((end_time - start_time) * 1000.0) / NUM_RUNS
-    # 浮動小数点誤差を排除するため、サイクルの総重量が明確に負（-1e-7未満）か検証
-    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list_for_dijkstra) < -1e-7]
+    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list) < -1e-7]
     
-    # 重複を排除
     unique_cycles = deduplicate_cycles(raw_cycles)
     
     arbitrage_cycles = [
@@ -189,27 +182,23 @@ def find_arbitrage_spfa():
     for edge in market.edges:
         print(edge.src, edge.dst, edge.weight)
     
-    # MarketGraphのadj_listをSPFA用の形式に変換
-    adj_list_for_spfa = {}
+    adj_list = {}
     for src in market.adj_list:
-        adj_list_for_spfa[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
+        adj_list[src] = [(edge.dst, edge.weight) for edge in market.adj_list[src]]
     
     # 全ノードを追加（孤立したノードも含める）
     for node in market.nodes:
-        if node not in adj_list_for_spfa:
-            adj_list_for_spfa[node] = []
+        if node not in adj_list:
+            adj_list[node] = []
     
-    # 10回実行して平均時間を計測
     NUM_RUNS = 100
     start_time = time.perf_counter()
     for _ in range(NUM_RUNS):
-        detected_cycles = find_negative_cycles_spfa(adj_list_for_spfa)
+        detected_cycles = find_negative_cycles_spfa(adj_list)
     end_time = time.perf_counter()
     execution_time_ms = ((end_time - start_time) * 1000.0) / NUM_RUNS
-    # 浮動小数点誤差を排除するため、サイクルの総重量が明確に負（-1e-7未満）か検証
-    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list_for_spfa) < -1e-7]
+    raw_cycles = [cycle for cycle in detected_cycles if get_cycle_weight(cycle, adj_list) < -1e-7]
     
-    # 重複を排除
     unique_cycles = deduplicate_cycles(raw_cycles)
     
     arbitrage_cycles = [
