@@ -1,6 +1,7 @@
 # --- Backend (Python) ---
 backend/.venv/
 backend/__pycache__/
+backend/test*.py
 *.pyc
 
 # --- Frontend (Node.js/Next.js) ---
